@@ -6,10 +6,20 @@ interface User {
   display_name: string;
   email?: string;
 }
+interface SuggestedPlaylist {
+  id: string;
+  name: string;
+  score: number;
+}
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [suggestedPlaylist, setSuggestedPlaylist] = useState<SuggestedPlaylist | null>(null);
+  const [trackUri, setTrackUri] = useState<string | null>(null);
+  const [addedSuccessfully, setAddedSuccessfully] = useState(false);
+
   const handleLogin = () => {
     window.location.href = 'http://127.0.0.1:3001/login';
   };
@@ -49,6 +59,9 @@ export default function Home() {
     }
 
     const trackId = match[1];
+    setTrackUri(trackId);
+    setIsClassifying(true);
+    setSuggestedPlaylist(null);
     console.log('Analyzing track with ID:', trackId);
 
     try {
@@ -63,15 +76,39 @@ export default function Home() {
       if (response.ok) {
         const result = await response.json();
         console.log('Classification result:', result);
+        setSuggestedPlaylist(result.suggestedPlaylist);
       } else {
         alert('Failed to classify song. Please try again.');
       }
     }
     catch (error) {
-     console.error('Error classifying song:', error);
+      console.error('Error classifying song:', error);
       alert('Error classifying song. Please try again.');
     }
+        setIsClassifying(false);
+
   }
+
+  const addToPlaylist = async (playlistId: string, trackUri: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:3001/api/add-to-playlist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ playlistId, trackUri })
+      });
+      if (response.ok) {
+        console.log('Track added to playlist successfully');
+        setAddedSuccessfully(true);
+      }
+    } catch (error) {
+      console.error('Error adding to playlist:', error);
+      alert('Error adding to playlist. Please try again.');
+    }
+  }
+
 
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
@@ -93,6 +130,7 @@ export default function Home() {
                     handleAnalyzeSong(e.currentTarget.value);
                   }
                 }}
+                disabled={isClassifying}
               />
               <button 
                 className="w-full mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
@@ -100,9 +138,39 @@ export default function Home() {
                   const input = document.querySelector('input') as HTMLInputElement;
                   handleAnalyzeSong(input.value);
                 }}
+                disabled={isClassifying}
               >
-                Analyze Song
+                {isClassifying ? "Analyzing..." : "Analyze Song"}
               </button>
+              {isClassifying && (
+              <div className="flex justify-center items-center mt-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+                <span className="ml-2 text-green-500">Analyzing...</span>
+              </div>
+            )}
+            {suggestedPlaylist && (
+              <div className="mt-6 text-center">
+                <div className="text-md font-semibold text-green-700">
+                  Recommended Playlist:
+                </div>
+                <div className="text-lg font-bold">{suggestedPlaylist.name}</div>
+                <div className="text-sm text-gray-500">Score: {suggestedPlaylist.score}</div>
+                  <button 
+                className="w-full mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                onClick={() => {
+                 addToPlaylist(suggestedPlaylist.id, `spotify:track:${trackUri}`);
+                }}
+                
+              >
+                Add to Recommended Playlist
+              </button>
+              {addedSuccessfully && (
+                <div className="mt-2 text-sm text-white-500">
+                  Track added to playlist successfully!
+                </div>
+              )}
+              </div>
+            )}
             </div>
        </main>
       ) : (
