@@ -6,17 +6,29 @@ interface User {
   display_name: string;
   email?: string;
 }
-interface SuggestedPlaylist {
-  id: string;
-  name: string;
+
+interface PlaylistSuggestion {
+  playlistId: string;
+  playlistName: string;
   score: number;
+  avgPopularity?: number;
+  popularityScore?: number;
+  image: string | null;
 }
 
+interface Track {
+  id: string;
+  name: string;
+  artists: { name: string }[];
+  album: { name: string; images: { url: string }[] };
+}
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isClassifying, setIsClassifying] = useState(false);
-  const [suggestedPlaylist, setSuggestedPlaylist] = useState<SuggestedPlaylist | null>(null);
+  const [topPlaylists, setTopPlaylists] = useState<PlaylistSuggestion[]>([]);
+  const [track, setTrack] = useState<Track | null>(null);
+
   const [trackUri, setTrackUri] = useState<string | null>(null);
   const [addedSuccessfully, setAddedSuccessfully] = useState(false);
 
@@ -61,7 +73,6 @@ export default function Home() {
     const trackId = match[1];
     setTrackUri(trackId);
     setIsClassifying(true);
-    setSuggestedPlaylist(null);
     console.log('Analyzing track with ID:', trackId);
 
     try {
@@ -76,7 +87,9 @@ export default function Home() {
       if (response.ok) {
         const result = await response.json();
         console.log('Classification result:', result);
-        setSuggestedPlaylist(result.suggestedPlaylist);
+        setTopPlaylists(result.topPlaylists || []);
+        setTrack(result.track);
+
       } else {
         alert('Failed to classify song. Please try again.');
       }
@@ -118,7 +131,6 @@ export default function Home() {
        
        <div className="text-center">
               <div className="text-lg">Welcome, <span className="font-semibold">{user.display_name}</span>!</div>
-              <div className="text-sm text-gray-600 mt-1">Ready to analyze a song?</div>
         </div>
         <div className="w-full max-w-md">
               <input
@@ -148,31 +160,57 @@ export default function Home() {
                 <span className="ml-2 text-green-500">Analyzing...</span>
               </div>
             )}
-            {suggestedPlaylist && (
+            {track && (
               <div className="mt-6 text-center">
-                <div className="text-md font-semibold text-green-700">
-                  Recommended Playlist:
+                <div className="text-md font-semibold text-white-700">Analyzed Track:</div>
+                <div className="flex flex-col items-center mt-4">
+                  <img src={track.album.images[0].url} alt={track.name} className="w-24 h-24 rounded mb-2" />
+                  <div className="font-bold">{track.name}</div>
+                  <div className="text-sm text-gray-500">by {track.artists.map(artist => artist.name).join(', ')}</div>
+                  <div className="text-sm text-gray-500">Album: {track.album.name}</div>
                 </div>
-                <div className="text-lg font-bold">{suggestedPlaylist.name}</div>
-                <div className="text-sm text-gray-500">Score: {suggestedPlaylist.score}</div>
-                  <button 
-                className="w-full mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                onClick={() => {
-                 addToPlaylist(suggestedPlaylist.id, `spotify:track:${trackUri}`);
-                }}
-                
-              >
-                Add to Recommended Playlist
-              </button>
-              {addedSuccessfully && (
-                <div className="mt-2 text-sm text-white-500">
-                  Track added to playlist successfully!
-                </div>
-              )}
               </div>
             )}
+
+            {topPlaylists.length > 0 && (
+              <div className="mt-6 text-center">
+                <div className="text-md font-semibold text-white-700">
+                  Top Playlist Suggestions:
+                </div>
+                <div className="flex flex-col gap-4 mt-4">
+                  {topPlaylists.map((playlist) => (
+                    <div key={playlist.playlistId} className="flex flex-col items-center border rounded-lg p-4 shadow">
+                      {playlist.image && (
+                        <img src={playlist.image} alt={playlist.playlistName} className="w-20 h-20 rounded mb-2" />
+                      )}
+                      <div className="font-bold">{playlist.playlistName}</div>
+                      <div className="text-sm text-gray-500">Score: {playlist.score}</div>
+                      <button
+                        className="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                        onClick={() => addToPlaylist(playlist.playlistId, `spotify:track:${trackUri}`)}
+                      >
+                        Add to this Playlist
+                      </button>
+                      {addedSuccessfully && (
+                        <div className="mt-2 text-sm text-green-500">
+                          Track added to playlist successfully!
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="text-center mt-6 flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+              </svg>
+              <div className="text-white-600 font-semibold">How are playlists scored?</div>
             </div>
-       </main>
+            <div className="flex">Spotify deprecated many of their publicly available APIs that enabled song analysis, making it challenging to easily describe the characteristics of a song and then place it in a corresponding playlist. This app uses a custom scoring system based on some of the few available features: tracks, artists, and popularity. All other factors like danceability, rhythm, genre, instrumentalness, tempo, etc have been incorporated manually.</div>
+
+            </div>
+        </main>
       ) : (
           <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         plauly

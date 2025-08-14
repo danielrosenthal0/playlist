@@ -212,15 +212,13 @@ app.post('/api/classify-song', async (req, res) => {
     const newSongArtistNames = trackData.artists.map(a => a.name);
 
     // Get all user playlists
-    const playlistsResponse = await fetch(`https://api.spotify.com/v1/me/playlists?limit=10`, {
+    const playlistsResponse = await fetch(`https://api.spotify.com/v1/me/playlists?limit=25`, {
       headers: { 'Authorization': 'Bearer ' + req.session.spotify.access_token }
     });
     if (!playlistsResponse.ok) throw new Error('Playlists info error');
     const playlistsData = await playlistsResponse.json();
 
     // Score each playlist
-    let bestPlaylist = null;
-    let bestScore = -1;
     const playlistScores = [];
 
     for (const playlist of playlistsData.items) {
@@ -231,6 +229,8 @@ app.post('/api/classify-song', async (req, res) => {
       const playlistTracksData = await playlistTracksResponse.json();
 
       let score = 0;
+      let popularitySum = 0;
+      let popularityCount = 0;
       for (const item of playlistTracksData.items) {
         if (!item.track) continue;
 
@@ -251,30 +251,32 @@ app.post('/api/classify-song', async (req, res) => {
         // Score: +2 for artist match, +1 for genre match
         if (trackArtistNames.some(name => newSongArtistNames.includes(name))) score += 2;
         if (trackArtistGenres.some(g => newSongGenres.includes(g))) score += 1;
+
+        
+        popularitySum += item.track.popularity;
+        popularityCount++;
       }
+      const avgPopularity = popularityCount > 0 ? popularitySum / popularityCount : 50; // fallback to 50 if no data
+      const newSongPopularity = typeof trackData.popularity === 'number' ? trackData.popularity : 50;
+      const popularityDiff = Math.abs(avgPopularity - newSongPopularity);
+      const popularityScore = Math.max(0, 10 - popularityDiff / 5);
+      score += popularityScore;
 
       playlistScores.push({
         playlistId: playlist.id,
         playlistName: playlist.name,
-        score
+        score: Math.round(score),
+        avgPopularity: Math.round(avgPopularity),
+        popularityScore: Math.round(popularityScore),
+        image: playlist.images.length > 0 ? playlist.images[0].url : null
       });
 
-      if (score > bestScore) {
-        bestScore = score;
-        bestPlaylist = playlist;
-      }
     }
+    const topPlaylists = playlistScores.sort((a, b) => b.score - a.score).slice(0, 3);
 
     res.json({
       track: trackData,
-      suggestedPlaylist: bestPlaylist
-        ? {
-            id: bestPlaylist.id,
-            name: bestPlaylist.name,
-            score: bestScore
-          }
-        : null,
-      playlistScores
+      topPlaylists
     });
   } catch (error) {
     console.error(error);
