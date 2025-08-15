@@ -1,4 +1,4 @@
-export const genreMapPart1 = {
+export const genreMap = {
   rap: {
     underground: {
       artists: ['Playboi Carti', 'Ken Carson', 'Destroy Lonely', 'UnoTheActivist', 'Yeat', 'Nettspend', 'Feng', 'Fakemink', 'evilgiane', 'Benji Blue Bills', 'Lazer Dim 700', 'Lancey Foux', 'Summrs', 'Autumn!', 'Kasher Quon'],

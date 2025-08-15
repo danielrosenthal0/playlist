@@ -31,7 +31,7 @@ export default function Home() {
   const [track, setTrack] = useState<Track | null>(null);
 
   const [trackUri, setTrackUri] = useState<string | null>(null);
-  const [addedSuccessfully, setAddedSuccessfully] = useState(false);
+  const [addedSuccessfullyId, setAddedSuccessfullyId] = useState<string | null>(null);
 
   const handleLogin = () => {
     window.location.href = 'http://127.0.0.1:3001/login';
@@ -49,7 +49,10 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-      } else {
+      } else if (response.status === 401) {
+      // Not authenticated, just set user to null
+      setUser(null);
+    } else {
         console.error('Failed to fetch user data');
       }
     } catch (error) {
@@ -115,7 +118,7 @@ export default function Home() {
       });
       if (response.ok) {
         console.log('Track added to playlist successfully');
-        setAddedSuccessfully(true);
+        setAddedSuccessfullyId(playlistId);
       }
     } catch (error) {
       console.error('Error adding to playlist:', error);
@@ -129,10 +132,6 @@ export default function Home() {
       {user ? (
         <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
           <h1 className="font-bold text-lg">plauly</h1>
-       
-       <div className="text-center">
-              <div className="text-lg">Welcome, <span className="font-semibold">{user.display_name}</span>!</div>
-        </div>
         <div className="w-full max-w-md">
               <input
                 type="text"
@@ -193,7 +192,7 @@ export default function Home() {
                       >
                         Add to this Playlist
                       </button>
-                      {addedSuccessfully && (
+                      {addedSuccessfullyId == playlist.playlistId && (
                         <div className="mt-2 text-sm text-green-500">
                           Track added to playlist successfully!
                         </div>

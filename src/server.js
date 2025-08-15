@@ -38,7 +38,20 @@ const generateRandomString = (length) => {
   }
   return text;
 };
-
+function getBestGenreMatch(artistNames, genres) {
+  let bestMatch = { main: null, sub: null, score: 0 };
+  Object.entries(genreMap).forEach(([mainGenre, subgenres]) => {
+    Object.entries(subgenres).forEach(([sub, data]) => {
+      let score = 0;
+      if (data.artists.some(a => artistNames.includes(a))) score += 2;
+      if (genres.some(g => data.keywords.includes(g))) score += 1;
+      if (score > bestMatch.score) {
+        bestMatch = { main: mainGenre, sub, score };
+      }
+    });
+  });
+  return bestMatch;
+}
 app.get('/login', (req, res) => { 
   var state = generateRandomString(16);
   var scope = [
@@ -62,7 +75,8 @@ app.get('/login', (req, res) => {
       client_id: CLIENT_ID,
       scope: scope,
       redirect_uri: REDIRECT_URI,
-      state: state
+      state: state,
+      show_dialog: true
     })
   )
 });
@@ -177,7 +191,6 @@ app.get('/api/spotify/me', async (req, res) => {
   }
 });
 
-// ...existing code...
 
 app.post('/api/classify-song', async (req, res) => {
   if (!req.session.spotify) {
@@ -210,9 +223,10 @@ app.post('/api/classify-song', async (req, res) => {
     }
     newSongGenres = [...new Set(newSongGenres)];
     const newSongArtistNames = trackData.artists.map(a => a.name);
+const bestGenreMatch = getBestGenreMatch(newSongArtistNames, newSongGenres);
 
     // Get all user playlists
-    const playlistsResponse = await fetch(`https://api.spotify.com/v1/me/playlists?limit=25`, {
+    const playlistsResponse = await fetch(`https://api.spotify.com/v1/me/playlists?limit=5`, {
       headers: { 'Authorization': 'Bearer ' + req.session.spotify.access_token }
     });
     if (!playlistsResponse.ok) throw new Error('Playlists info error');
@@ -232,6 +246,9 @@ app.post('/api/classify-song', async (req, res) => {
       let popularitySum = 0;
       let popularityCount = 0;
       let scoreDescription = '';
+      let matchedArtistsArr = [];
+let matchedGenresArr = [];
+let matchedSubgenresArr = [];
       for (const item of playlistTracksData.items) {
         if (!item.track) continue;
 
@@ -250,21 +267,36 @@ app.post('/api/classify-song', async (req, res) => {
         const trackArtistNames = item.track.artists.map(a => a.name);
 
         // Score: +2 for artist match, +1 for genre match
-        const matchedArtist = trackArtistNames.find(name => newSongArtistNames.includes(name));
-        if (matchedArtist) {
-          score += 2;
-          scoreDescription += `+2 for artist match: ${matchedArtist}\n`;
-        }
-        const matchedGenre = trackArtistGenres.find(g => newSongGenres.includes(g));
-        if (matchedGenre) {
-          score += 2;
-          scoreDescription += `+2 for genre match: ${matchedGenre}\n`;
-        }
-
+  const matchedArtist = trackArtistNames.find(name => newSongArtistNames.includes(name));
+  if (matchedArtist) {
+    score += 2;
+    matchedArtistsArr.push(matchedArtist);
+  }
+  const matchedGenre = trackArtistGenres.find(g => newSongGenres.includes(g));
+  if (matchedGenre) {
+    score += 2;
+    matchedGenresArr.push(matchedGenre);
+  }
+  const trackBestGenre = getBestGenreMatch(trackArtistNames, trackArtistGenres);
+  if (
+    trackBestGenre.main === bestGenreMatch.main &&
+    trackBestGenre.sub === bestGenreMatch.sub
+  ) {
+    score += 3;
+    matchedSubgenresArr.push(`${trackBestGenre.main} - ${trackBestGenre.sub}`);
+  }
         
         popularitySum += item.track.popularity;
         popularityCount++;
       }
+      const uniqueArtists = [...new Set(matchedArtistsArr)];
+const uniqueGenres = [...new Set(matchedGenresArr)];
+const uniqueSubgenres = [...new Set(matchedSubgenresArr)];
+
+scoreDescription =
+  (uniqueArtists.length ? `+2 for artist match: ${uniqueArtists.join(', ')}\n` : '') +
+  (uniqueGenres.length ? `+2 for genre match: ${uniqueGenres.join(', ')}\n` : '') +
+  (uniqueSubgenres.length ? `+3 for subgenre match: ${uniqueSubgenres.join(', ')}\n` : '');
       const avgPopularity = popularityCount > 0 ? popularitySum / popularityCount : 50; // fallback to 50 if no data
       const newSongPopularity = typeof trackData.popularity === 'number' ? trackData.popularity : 50;
       const popularityDiff = Math.abs(avgPopularity - newSongPopularity);
