@@ -14,6 +14,7 @@ interface PlaylistSuggestion {
   avgPopularity?: number;
   popularityScore?: number;
   image: string | null;
+  scoreDescription: string;
 }
 
 interface Track {
@@ -185,6 +186,7 @@ export default function Home() {
                       )}
                       <div className="font-bold">{playlist.playlistName}</div>
                       <div className="text-sm text-gray-500">Score: {playlist.score}</div>
+                      <div className="text-sm text-gray-500">Score Description: {playlist.scoreDescription}</div>
                       <button
                         className="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
                         onClick={() => addToPlaylist(playlist.playlistId, `spotify:track:${trackUri}`)}
@@ -207,7 +209,7 @@ export default function Home() {
               </svg>
               <div className="text-white-600 font-semibold">How are playlists scored?</div>
             </div>
-            <div className="flex">Spotify deprecated many of their publicly available APIs that enabled song analysis, making it challenging to easily describe the characteristics of a song and then place it in a corresponding playlist. This app uses a custom scoring system based on some of the few available features: tracks, artists, and popularity. All other factors like danceability, rhythm, genre, instrumentalness, tempo, etc have been incorporated manually.</div>
+            <div className="flex">This app uses a custom scoring system based on some of the few available features: tracks, artists, and popularity. All other factors like danceability, rhythm, genre, instrumentalness, tempo, etc have been incorporated manually.</div>
 
             </div>
         </main>

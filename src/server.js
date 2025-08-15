@@ -231,6 +231,7 @@ app.post('/api/classify-song', async (req, res) => {
       let score = 0;
       let popularitySum = 0;
       let popularityCount = 0;
+      let scoreDescription = '';
       for (const item of playlistTracksData.items) {
         if (!item.track) continue;
 
@@ -249,8 +250,16 @@ app.post('/api/classify-song', async (req, res) => {
         const trackArtistNames = item.track.artists.map(a => a.name);
 
         // Score: +2 for artist match, +1 for genre match
-        if (trackArtistNames.some(name => newSongArtistNames.includes(name))) score += 2;
-        if (trackArtistGenres.some(g => newSongGenres.includes(g))) score += 1;
+        const matchedArtist = trackArtistNames.find(name => newSongArtistNames.includes(name));
+        if (matchedArtist) {
+          score += 2;
+          scoreDescription += `+2 for artist match: ${matchedArtist}\n`;
+        }
+        const matchedGenre = trackArtistGenres.find(g => newSongGenres.includes(g));
+        if (matchedGenre) {
+          score += 2;
+          scoreDescription += `+2 for genre match: ${matchedGenre}\n`;
+        }
 
         
         popularitySum += item.track.popularity;
@@ -268,7 +277,8 @@ app.post('/api/classify-song', async (req, res) => {
         score: Math.round(score),
         avgPopularity: Math.round(avgPopularity),
         popularityScore: Math.round(popularityScore),
-        image: playlist.images.length > 0 ? playlist.images[0].url : null
+        image: playlist.images.length > 0 ? playlist.images[0].url : null,
+        scoreDescription: scoreDescription || 'No matches found'
       });
 
     }
