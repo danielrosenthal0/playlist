@@ -41,10 +41,6 @@ export default function Home() {
     window.location.href = '/api/auth/login';
   };
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
   const checkAuthStatus = async () => {
     try {
       const response = await fetch('/api/user', {
@@ -63,6 +59,12 @@ export default function Home() {
       console.error('Error checking auth status:', error);
     }
   }
+
+  useEffect(() => {
+    // Initial auth bootstrap on first render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkAuthStatus();
+  }, []);
 
   const handleAnalyzeSong = async (url: string) => {
     if (!url.trim()) {
@@ -265,6 +267,7 @@ export default function Home() {
         ) : (
           <main className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
             <p className="text-slate-600">Connect Spotify to classify a song and find the best playlist.</p>
+            <p className="text-slate-600">Spotify only allows 5 users on development accounts, so contact me <a href="https://danielrosenthal.io/contact" target="_blank" rel="noopener noreferrer">here</a> to gain access if you are interested.</p>
             <button
               className="mt-4 rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700"
               onClick={handleLogin}
