@@ -1,9 +1,16 @@
-this app helps me to categorize and place specific songs into a correct playlist
+this app helps me categorize and place specific songs into the correct playlist.
 
-this only runs locally bc of spotify's api limitations
+this app now uses Next API routes (no separate express server).
 
-to run
+to run locally:
 `npm run dev`
 
-to run server
-`node server.js`
+required environment variables:
+- `SPOTIFY_CLIENT_ID`
+- `SPOTIFY_CLIENT_SECRET`
+- `SPOTIFY_REDIRECT_URI` (for local dev, use `http://127.0.0.1:3000/api/auth/callback`)
+- `SESSION_SECRET`
+
+optional classifier tuning:
+- `CLASSIFY_MAX_PLAYLISTS` (default `30`, max `50`)
+- `CLASSIFY_TRACKS_PER_PLAYLIST` (default `100`, max `200`)
