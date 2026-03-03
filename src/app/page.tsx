@@ -139,7 +139,6 @@ export default function Home() {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <header className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/90 px-6 py-4 shadow-sm backdrop-blur">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">plauly</h1>
-          <div className="text-sm text-slate-500">{user?.display_name ?? "Spotify playlist helper"}</div>
         </header>
 
         {user ? (
@@ -277,7 +276,7 @@ export default function Home() {
           </main>
         )}
 
-        <footer className="text-center text-sm text-slate-500">daniel rosenthal 2025</footer>
+        <footer className="text-center text-sm text-slate-500">daniel rosenthal 2026</footer>
       </div>
     </div>
   );
